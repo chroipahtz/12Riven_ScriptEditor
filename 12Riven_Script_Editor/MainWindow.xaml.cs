@@ -543,21 +543,25 @@ namespace Riven_Script_Editor
                 using (var reader = new FileStream(csvPath, FileMode.Open))
                 {
                     int i = 0;
+                    List<TokenMsgDisp2> tokensMsgDisp2 = tokenList.Where(l => l is TokenMsgDisp2).Cast<TokenMsgDisp2>().ToList();
+                    Regex lineNumberRegex = new Regex(@"^\d+(?=\. )");
+
                     foreach (var line in CsvReader.ReadFromStream(reader))
                     {
-                        while ((tokenList[i] is TokenMsgDisp2 == false || string.IsNullOrEmpty((tokenList[i] as TokenMsgDisp2).Message)) && i < tokenList.Count)
-                            i++;
-                        if (i > tokenList.Count)
-                            break;
+                        string lineNumber = lineNumberRegex.Match(line["JAPANESE"]).Value;
+                        if (string.IsNullOrEmpty(lineNumber))
+                            continue;
+                        i = Convert.ToInt32(lineNumber) - 1;
+                        if (i >= tokensMsgDisp2.Count)
+                            continue; // should break, but might as well keep going through the file
 
-                        string newText = line[1];
+                        string newText = line["ENGLISH"];
                         if (!string.IsNullOrEmpty(newText))
                         {
-                            tokenList[i].GetType().GetProperty("Message").SetValue(tokenList[i], newText);
-                            tokenList[i].UpdateData();
+                            tokensMsgDisp2[i].GetType().GetProperty("Message").SetValue(tokensMsgDisp2[i], newText);
+                            tokensMsgDisp2[i].UpdateData();
                             ChangedFile = true;
                         }
-                        i++;
                     }
                 }
 
