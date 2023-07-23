@@ -58,8 +58,8 @@ namespace Riven_Script_Editor.Tokens
             CompleteMessage = _dataWrapper.ReadString(MsgPtr.MsgPtrString);
             MessagePointerList.Add(MsgPtr);
 
-            int idx1 = CompleteMessage.IndexOf("「");
-            int idx2 = CompleteMessage.IndexOf("」");
+            int idx1 = Regex.Match(CompleteMessage, "[「“]").Index;
+            int idx2 = Regex.Match(CompleteMessage, "[」”]").Index;
 
             if (idx1 > 0)
                 Speaker = CompleteMessage.Substring(0, idx1);
@@ -117,8 +117,9 @@ namespace Riven_Script_Editor.Tokens
         {
             string message_spacing = Message; // Utility.StringDoubleSpace(Message);
 
+            CompleteMessage = CompleteMessage.Replace("「", "“").Replace("」", "”");
             if (Speaker.Length > 0)
-                CompleteMessage = Speaker + "「" + message_spacing + "」" + MessageEnding;
+                CompleteMessage = Speaker + "“" + message_spacing + "”" + MessageEnding;
             else
                 CompleteMessage = message_spacing + "" + MessageEnding;
 
