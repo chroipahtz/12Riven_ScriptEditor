@@ -58,8 +58,10 @@ namespace Riven_Script_Editor.Tokens
             CompleteMessage = _dataWrapper.ReadString(MsgPtr.MsgPtrString);
             MessagePointerList.Add(MsgPtr);
 
-            int idx1 = Regex.Match(CompleteMessage, "[「“]").Index;
-            int idx2 = Regex.Match(CompleteMessage, "[」”]").Index;
+            Match leftQuote = Regex.Match(CompleteMessage, "[「“]");
+            Match rightQuote = Regex.Match(CompleteMessage, "[」”]");
+            int idx1 = leftQuote.Success ? leftQuote.Index : -1;
+            int idx2 = rightQuote.Success ? rightQuote.Index : -1;
 
             if (idx1 > 0)
                 Speaker = CompleteMessage.Substring(0, idx1);
