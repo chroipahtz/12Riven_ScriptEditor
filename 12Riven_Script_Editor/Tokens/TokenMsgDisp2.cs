@@ -54,12 +54,13 @@ namespace Riven_Script_Editor.Tokens
             "\n\nX Position:\n%X### (before start of text)\n(eg. %X050 shift to 50 pixels from left)";
             _command = "Msg Disp2";
 
-           
             CompleteMessage = _dataWrapper.ReadString(MsgPtr.MsgPtrString);
+            CompleteMessage = CompleteMessage.Replace("「", "“").Replace("」", "”");
+
             MessagePointerList.Add(MsgPtr);
 
             Match leftQuote = Regex.Match(CompleteMessage, "[「“]");
-            Match rightQuote = Regex.Match(CompleteMessage, "[」”]");
+            Match rightQuote = Regex.Match(CompleteMessage, "[」”]", RegexOptions.RightToLeft); // find last quote because of some weird double lines
             int idx1 = leftQuote.Success ? leftQuote.Index : -1;
             int idx2 = rightQuote.Success ? rightQuote.Index : -1;
 
