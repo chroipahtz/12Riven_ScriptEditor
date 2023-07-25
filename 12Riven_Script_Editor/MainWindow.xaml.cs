@@ -24,6 +24,7 @@ using Riven_Script_Editor.FileTypes;
 using System.Configuration;
 using System.Text.RegularExpressions;
 using Csv;
+using System.Net.Http;
 
 namespace Riven_Script_Editor
 {
@@ -533,37 +534,77 @@ namespace Riven_Script_Editor
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
             {
                 csvPath = dialog.FileName;
+                Import_Csv(new FileStream(csvPath, FileMode.Open, FileAccess.Read));
             }
             else
                 return;
+        }
 
-            // bad. horrible. temporary. but it works. -chroi
-            try
+        private async void Menu_Fetch_Csv(object sender, RoutedEventArgs e)
+        {
+            if (listviewFiles.SelectedItem == null)
             {
-                using (var reader = new FileStream(csvPath, FileMode.Open))
+                MessageBox.Show("Please select a script file.", "No script file selected");
+                return;
+            }
+
+            SheetIdDialog sheetIdDialog = new SheetIdDialog();
+            if (sheetIdDialog.ShowDialog() == true)
+            {
+                var sheetId = sheetIdDialog.SheetId;
+                var url = $"https://docs.google.com/spreadsheets/d/{sheetId}/gviz/tq?tqx=out:csv&sheet={filename}";
+
+                try
                 {
-                    int i = 0;
-                    List<TokenMsgDisp2> tokensMsgDisp2 = tokenList.Where(l => l is TokenMsgDisp2).Cast<TokenMsgDisp2>().ToList();
-                    Regex lineNumberRegex = new Regex(@"^\d+(?=\. )");
-
-                    foreach (var line in CsvReader.ReadFromStream(reader))
+                    using (var httpClient = new HttpClient())
                     {
-                        string lineNumber = lineNumberRegex.Match(line["JAPANESE"]).Value;
-                        if (string.IsNullOrEmpty(lineNumber))
-                            continue;
-                        i = Convert.ToInt32(lineNumber) - 1;
-                        if (i >= tokensMsgDisp2.Count)
-                            continue; // should break, but might as well keep going through the file
-
-                        string newText = line["ENGLISH"];
-                        if (!string.IsNullOrEmpty(newText))
+                        using (var response = await httpClient.GetStreamAsync(url))
                         {
-                            tokensMsgDisp2[i].GetType().GetProperty("Message").SetValue(tokensMsgDisp2[i], newText);
-                            tokensMsgDisp2[i].UpdateData();
-                            ChangedFile = true;
+                            Import_Csv(response);
                         }
                     }
                 }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Error fetching CSV");
+                }
+            }
+        }
+
+        private void Import_Csv(Stream reader)
+        {
+            // bad. horrible. temporary. but it works. -chroi
+            try
+            {
+                int i = 0;
+                List<TokenMsgDisp2> tokensMsgDisp2 = tokenList.Where(l => l is TokenMsgDisp2).Cast<TokenMsgDisp2>().ToList();
+                Regex lineNumberRegex = new Regex(@"^\d+(?=\. )");
+
+                var skipIndex = 0;
+
+                foreach (var line in CsvReader.ReadFromStream(reader, new CsvOptions() { HeaderMode = HeaderMode.HeaderAbsent }))
+                {
+                    if (skipIndex < 2)
+                    {
+                        skipIndex++;
+                        continue;
+                    }
+                    string lineNumber = lineNumberRegex.Match(line[0]).Value;
+                    if (string.IsNullOrEmpty(lineNumber))
+                        continue;
+                    i = Convert.ToInt32(lineNumber) - 1;
+                    if (i >= tokensMsgDisp2.Count)
+                        continue; // should break, but might as well keep going through the file
+
+                    string newText = line[1];
+                    if (!string.IsNullOrEmpty(newText))
+                    {
+                        tokensMsgDisp2[i].GetType().GetProperty("Message").SetValue(tokensMsgDisp2[i], newText);
+                        tokensMsgDisp2[i].UpdateData();
+                        ChangedFile = true;
+                    }
+                }
+
 
                 if (TokenListView.SelectedItem != null)
                     (TokenListView.SelectedItem as Token).UpdateGui(this);

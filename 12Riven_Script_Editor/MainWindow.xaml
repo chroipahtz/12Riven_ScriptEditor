@@ -17,6 +17,7 @@
                     <MenuItem Header="Export SCENE00.afs" Click="Menu_Export_Mac"/>
                     <MenuItem Header="Export file as TXT" Click="Menu_Export_Txt"/>
                     <Separator />
+                    <MenuItem Header="Fetch CSV from Google" Click="Menu_Fetch_Csv"/>
                     <MenuItem Header="Import CSV to current file..." Click="Menu_Import_Csv"/>
                     <Separator />
                     <MenuItem Header="Exit" Click="Menu_Exit" />

@@ -97,6 +97,9 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="ScriptListFileManager.cs" />
+    <Compile Include="SheetIdDialog.xaml.cs">
+      <DependentUpon>SheetIdDialog.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Tokenizer\DataTokenizer.cs" />
     <Compile Include="FileTypes\AFS.cs" />
     <Compile Include="ExceptionPopup.cs">
@@ -141,6 +144,10 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="SheetIdDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Themes\ExpressionDark.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
