@@ -18,6 +18,7 @@
                     <MenuItem Header="Export file as TXT" Click="Menu_Export_Txt"/>
                     <Separator />
                     <MenuItem Header="Fetch CSV from Google" Click="Menu_Fetch_Csv"/>
+                    <MenuItem Header="Fetch CSVs from Google in batch" Click="Menu_Fetch_Csv_Batch"/>
                     <MenuItem Header="Import CSV to current file..." Click="Menu_Import_Csv"/>
                     <Separator />
                     <MenuItem Header="Exit" Click="Menu_Exit" />

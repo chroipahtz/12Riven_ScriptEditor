@@ -540,6 +540,26 @@ namespace Riven_Script_Editor
                 return;
         }
 
+		private bool FetchCsv(string sheetId, string file) {
+			var url = $"https://docs.google.com/spreadsheets/d/{sheetId}/gviz/tq?tqx=out:csv&sheet={file}";
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    using (var response = await httpClient.GetStreamAsync(url))
+                    {
+                        Import_Csv(response);
+                    }
+                }
+				return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Error fetching CSV");
+				return false;
+            }
+		}
+
         private async void Menu_Fetch_Csv(object sender, RoutedEventArgs e)
         {
             if (listviewFiles.SelectedItem == null)
@@ -551,23 +571,19 @@ namespace Riven_Script_Editor
             SheetIdDialog sheetIdDialog = new SheetIdDialog();
             if (sheetIdDialog.ShowDialog() == true)
             {
-                var sheetId = sheetIdDialog.SheetId;
-                var url = $"https://docs.google.com/spreadsheets/d/{sheetId}/gviz/tq?tqx=out:csv&sheet={filename}";
+				FetchCsv(sheetIdDialog.SheetId, filename);
+            }
+        }
 
-                try
-                {
-                    using (var httpClient = new HttpClient())
-                    {
-                        using (var response = await httpClient.GetStreamAsync(url))
-                        {
-                            Import_Csv(response);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message, "Error fetching CSV");
-                }
+		private async void Menu_Fetch_Csv_Batch(object sender, RoutedEventArgs e)
+        {
+            SheetIdDialog sheetIdDialog = new SheetIdDialog();
+            if (sheetIdDialog.ShowDialog() == true)
+            {
+				// temp list
+                if(!FetchCsv(sheetIdDialog.SheetId, "Ca11a.BIN")) return;
+				if(!FetchCsv(sheetIdDialog.SheetId, "Ca11b.BIN")) return;
+				if(!FetchCsv(sheetIdDialog.SheetId, "Ca12a.BIN")) return;
             }
         }
 
@@ -585,6 +601,7 @@ namespace Riven_Script_Editor
                 Regex selectChoiceRegex = new Regex(@"([『“].*?[』”])\s*(/|$)");
 
                 var skipIndex = 0;
+				var numberSubtract = 0;
 
                 foreach (var line in CsvReader.ReadFromStream(reader, new CsvOptions() { HeaderMode = HeaderMode.HeaderAbsent }))
                 {
@@ -593,7 +610,11 @@ namespace Riven_Script_Editor
                         skipIndex++;
                         continue;
                     }
-                    string lineNumber = lineNumberRegex.Match(line[0]).Value;
+					if(line[0].EndsWith(" /")) {
+						numberSubtract++;
+						continue;
+					}
+                    string lineNumber = lineNumberRegex.Match(line[0]).Value - numberSubtract;
                     if (string.IsNullOrEmpty(lineNumber))
                         continue;
                     i = Convert.ToInt32(lineNumber) - 1;
