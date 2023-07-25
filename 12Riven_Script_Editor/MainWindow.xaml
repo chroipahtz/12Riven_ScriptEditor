@@ -14,7 +14,7 @@
                 <MenuItem Header="_File">
                     <MenuItem Header="Save current script file" Click="Menu_File_Save"/>
                     <Separator />
-                    <MenuItem Header="Export SCENE00.afs" Click="Menu_Export_Mac"/>
+                    <MenuItem Header="Export SCENE00.afs" Click="Menu_Export_Afs"/>
                     <MenuItem Header="Export file as TXT" Click="Menu_Export_Txt"/>
                     <Separator />
                     <MenuItem Header="Fetch CSV from Google" Click="Menu_Fetch_Csv"/>
@@ -123,7 +123,7 @@
 
             <ListBox Grid.Row="2" Grid.Column="0" x:Name="listviewEntries" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" RenderTransformOrigin="0.5,0.5" Margin="0"/>
 
-            <ListView Grid.Row="0" Grid.Column="2" x:Name="TokenListView" MinWidth="777" ItemsSource="{Binding CommandList, UpdateSourceTrigger=PropertyChanged}" SelectionChanged="ListView1_SelectionChanged" RenderTransformOrigin="0.5,0.5" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Margin="0">
+            <ListView Grid.Row="0" Grid.Column="2" x:Name="TokenListView" MinWidth="777" ItemsSource="{Binding CommandList, UpdateSourceTrigger=PropertyChanged}" SelectionChanged="TokenListView_SelectionChanged" RenderTransformOrigin="0.5,0.5" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Margin="0">
                 <ListView.View>
                     <GridView>
                         <GridViewColumn Header="Offset" Width="50" DisplayMemberBinding="{Binding OffsetHex}"/>
@@ -160,7 +160,7 @@
                 </ListView.View>
                 <ListView.ItemContainerStyle>
                     <Style TargetType="{x:Type ListViewItem}">
-                        <EventSetter Event="PreviewMouseRightButtonUp" Handler="ListView1_MouseRightButtonDown" />
+                        <EventSetter Event="PreviewMouseRightButtonUp" Handler="TokenListView_MouseRightButtonDown" />
                         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
                         <Setter Property="FocusVisualStyle" Value="{StaticResource ListViewItemFocusVisual}" />
                         <Setter Property="Background" Value="Transparent" />

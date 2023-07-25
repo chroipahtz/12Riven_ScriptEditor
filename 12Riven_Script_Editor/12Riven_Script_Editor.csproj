@@ -96,6 +96,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="ScriptFile.cs" />
     <Compile Include="ScriptListFileManager.cs" />
     <Compile Include="SheetIdDialog.xaml.cs">
       <DependentUpon>SheetIdDialog.xaml</DependentUpon>

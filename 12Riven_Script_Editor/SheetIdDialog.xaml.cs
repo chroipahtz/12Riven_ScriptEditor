@@ -21,9 +21,11 @@ namespace Riven_Script_Editor
     public partial class SheetIdDialog : Window
     {
         public String SheetId = "";
-        public SheetIdDialog()
+        public SheetIdDialog(string sheetId = "")
         {
             InitializeComponent();
+            SheetId = sheetId ?? "";
+            SheetIdTextBox.Text = sheetId ?? "";
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)

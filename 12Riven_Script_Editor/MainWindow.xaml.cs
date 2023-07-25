@@ -25,6 +25,7 @@ using System.Configuration;
 using System.Text.RegularExpressions;
 using Csv;
 using System.Net.Http;
+using System.Windows.Forms.VisualStyles;
 
 namespace Riven_Script_Editor
 {
@@ -39,23 +40,32 @@ namespace Riven_Script_Editor
         string splittedFilenameEnding = "_continued";
         bool searchEndOfFile = false;
         readonly Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-        ATokenizer Tokenizer;
-        private List<Token> tokenList;
 
         public Grid Grid;
         public ListBox EntriesList;
         public TextBlock ScriptSizeTextBlock;
 
+        public string currentFilename;
+        public ScriptFile currentScript;
+        public Dictionary<string, ScriptFile> ScriptFiles;
+
         public ScriptSizeNotifier scriptSizeNotifier;
         public ScriptListFileManager scriptListFileManager;
 
-        public bool ChangedFile { get; internal set; }
+        // old convenience getters
+        public List<Token> TokenList { get { return currentScript.TokenList; } }
+        public ATokenizer Tokenizer { get { return currentScript.Tokenizer; } }
+        public bool ChangedFile { get { return currentScript.ChangedFile; } set { currentScript.ChangedFile = value; } }
 
         public MainWindow()
         {
             InitializeComponent();
 
             scriptListFileManager = new ScriptListFileManager(GetConfig("list_file"));
+            ScriptFile.scriptListFileManager = scriptListFileManager;
+
+            ScriptFiles = new Dictionary<string, ScriptFile>();
+
             Grid = ((MainWindow)Application.Current.MainWindow).GuiArea;
             EntriesList = ((MainWindow)Application.Current.MainWindow).listviewEntries;
             ScriptSizeTextBlock = ((MainWindow)Application.Current.MainWindow).ScriptSizeCounter;
@@ -111,20 +121,38 @@ namespace Riven_Script_Editor
             MessageBox.Show(e.ExceptionObject.ToString());
         }
 
-        private bool CheckUnsavedChanges() 
+        private bool CheckUnsavedChanges(string filename = null) 
         {
-            // Check for file changes, then prompt user to save
-            if (ChangedFile)
-            {
-                MessageBoxResult dialogResult = MessageBox.Show("File changed. Save?", "Unsaved changes", MessageBoxButton.YesNoCancel);
+            IEnumerable<ScriptFile> scriptFiles = null;
 
-                if (dialogResult == MessageBoxResult.Yes)
+            // Check for file changes, then prompt user to save
+            if (!string.IsNullOrEmpty(filename))
+            {
+                ScriptFile loadedFile = GetScriptFile(filename, false);
+                if (loadedFile != null)
+                    scriptFiles = new List<ScriptFile>() { loadedFile };
+            }
+            else    
+                scriptFiles = ScriptFiles.Values;
+
+            if (scriptFiles == null)
+                return true;
+
+            foreach (ScriptFile scriptFile in scriptFiles)
+            {
+                if (scriptFile.ChangedFile)
                 {
-                    byte[] output = Tokenizer.AssembleAsData(tokenList);
-                    if (!SaveFile(filename, output)) return false;
+                    MessageBoxResult dialogResult = MessageBox.Show($"{scriptFile.Name} changed. Save?", "Unsaved changes", MessageBoxButton.YesNoCancel);
+
+                    if (dialogResult == MessageBoxResult.Yes)
+                    {
+                        string path_en = System.IO.Path.Combine(folder, scriptFile.Name);
+
+                        if (!scriptFile.SaveScriptFile(path_en)) return false;
+                    }
+                    else if (dialogResult == MessageBoxResult.Cancel)
+                        return false;
                 }
-                else if (dialogResult == MessageBoxResult.Cancel)
-                    return false;
             }
             return true;
         }
@@ -225,9 +253,9 @@ namespace Riven_Script_Editor
 
                 while (!SearchToken(textbox_search.Text, next, (bool)checkbox_SearchCaseSensitive.IsChecked))
                 {
-                    bool success = CheckUnsavedChanges();
-                    if (!success)
-                        return;
+                    //bool success = CheckUnsavedChanges();
+                    //if (!success)
+                    //    return;
 
                     if (next)
                         idx = mod(idx + 1, listviewFiles.Items.Count);
@@ -440,22 +468,27 @@ namespace Riven_Script_Editor
             if (TokenListView.SelectedItem != null)
                 (TokenListView.SelectedItem as Token).UpdateGui(this);
         }
-        
+
         private void Menu_File_Save(object sender, RoutedEventArgs e)
         {
-            if (filename == "") return;
+            SaveCurrentScriptFile();
+        }
 
-            byte[] output = Tokenizer.AssembleAsData(tokenList.ToList());
-            SaveFile(filename, output);
+        private bool SaveCurrentScriptFile()
+        {
+            try
+            {
+                return currentScript.SaveScriptFile(currentFilename);
+            }
+            catch (ScriptFileException ex)
+            {
+                MessageBox.Show(ex.Message, "Script save failed");
+                return false;
+            }
         }
 
         private bool SaveFile(string fileName, byte[] data)
         {
-            if (data.Length > 0xFFFF)
-            {
-                MessageBox.Show("Please split the script before saving it", "Script length exceeded");
-                return false;
-            }
             try
             {
                 string outPath = System.IO.Path.Combine(folder, fileName);
@@ -463,18 +496,17 @@ namespace Riven_Script_Editor
                 var stream_out = new FileStream(outPath, FileMode.Create, FileAccess.ReadWrite);
                 stream_out.Write(data, 0, data.Length);
                 stream_out.Close();
+
+                return true;
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message);
+                MessageBox.Show(ex.Message, "File save failed");
                 return false;
             }
-            ChangedFile = false;
-            return true;
-
         }
 
-        private void Menu_Export_Mac(object sender, RoutedEventArgs e)
+        private void Menu_Export_Afs(object sender, RoutedEventArgs e)
         {
             if (textbox_exportedAfs.Text == "") 
             {
@@ -487,7 +519,25 @@ namespace Riven_Script_Editor
                 MessageBox.Show("Please select an AFS path.", "No AFS path selected");
                 return;
             }
-            
+
+            IEnumerable<ScriptFile> changedFiles = ScriptFiles.Values.Where(f => f.ChangedFile);
+
+            if (changedFiles.Count() > 0)
+            {
+                if (MessageBox.Show($"{changedFiles.Count()} scripts have changed and need to be saved before the AFS can be exported.\n\nSave all?", "Unsaved changes", MessageBoxButton.OKCancel) == MessageBoxResult.Cancel)
+                    return;
+
+                foreach (ScriptFile scriptFile in changedFiles)
+                {
+                    string path_en = System.IO.Path.Combine(folder, scriptFile.Name);
+
+                    if (!scriptFile.SaveScriptFile(path_en)) {
+                        MessageBox.Show($"Failed to save {scriptFile.Name}. Canceling AFS export.");
+                        return;
+                    }
+                }
+            }
+
             try
             {
                 using (FileStream stream = new FileStream(textbox_exportedAfs.Text, FileMode.Create, FileAccess.Write))
@@ -509,8 +559,8 @@ namespace Riven_Script_Editor
             try
             {
                 fileName = (string)listviewFiles.SelectedItem;
-                byte[] output = Tokenizer.AssembleAsText(fileName, tokenList.ToList());
-                SaveFile(fileName + ".txt", output);
+                string outPath = System.IO.Path.Combine(folder, currentFilename);
+                currentScript.ExportTextFile(outPath + ".txt");
             }
             catch (Exception ex)
             {
@@ -534,13 +584,15 @@ namespace Riven_Script_Editor
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
             {
                 csvPath = dialog.FileName;
-                Import_Csv(new FileStream(csvPath, FileMode.Open, FileAccess.Read));
+                currentScript.ImportCSV(new FileStream(csvPath, FileMode.Open, FileAccess.Read));
+                if (TokenListView.SelectedItem != null)
+                    (TokenListView.SelectedItem as Token).UpdateGui(this);
             }
             else
                 return;
         }
 
-		private bool FetchCsv(string sheetId, string file) {
+		private async Task<bool> FetchCsv(string sheetId, string file) {
 			var url = $"https://docs.google.com/spreadsheets/d/{sheetId}/gviz/tq?tqx=out:csv&sheet={file}";
             try
             {
@@ -548,7 +600,11 @@ namespace Riven_Script_Editor
                 {
                     using (var response = await httpClient.GetStreamAsync(url))
                     {
-                        Import_Csv(response);
+                        string path_en = System.IO.Path.Combine(folder, file);
+                        string path_jp = System.IO.Path.Combine(textbox_inputFolderJp.Text, file);
+
+                        ScriptFile script = GetScriptFile(file); 
+                        script.ImportCSV(response);
                     }
                 }
 				return true;
@@ -568,103 +624,38 @@ namespace Riven_Script_Editor
                 return;
             }
 
-            SheetIdDialog sheetIdDialog = new SheetIdDialog();
+            SheetIdDialog sheetIdDialog = new SheetIdDialog(GetConfig("spreadsheet_id"));
             if (sheetIdDialog.ShowDialog() == true)
             {
-				FetchCsv(sheetIdDialog.SheetId, filename);
+                UpdateConfig("spreadsheet_id", sheetIdDialog.SheetId);
+				await FetchCsv(sheetIdDialog.SheetId, filename);
             }
         }
 
 		private async void Menu_Fetch_Csv_Batch(object sender, RoutedEventArgs e)
         {
-            SheetIdDialog sheetIdDialog = new SheetIdDialog();
+            SheetIdDialog sheetIdDialog = new SheetIdDialog(GetConfig("spreadsheet_id"));
             if (sheetIdDialog.ShowDialog() == true)
             {
-				// temp list
-                if(!FetchCsv(sheetIdDialog.SheetId, "Ca11a.BIN")) return;
-				if(!FetchCsv(sheetIdDialog.SheetId, "Ca11b.BIN")) return;
-				if(!FetchCsv(sheetIdDialog.SheetId, "Ca12a.BIN")) return;
-            }
-        }
+                UpdateConfig("spreadsheet_id", sheetIdDialog.SheetId);
 
-        private void Import_Csv(Stream reader)
-        {
-            // bad. horrible. temporary. but it works. -chroi
-            try
-            {
-                int i = 0;
-                
-                List<Type> countedTokenTypes = new List<Type>() { typeof(TokenMsgDisp2), typeof(TokenSelectDisp2) };
-                List<Token> countedTokens = tokenList.Where(l => countedTokenTypes.Contains(l.GetType()) ).ToList();
-
-                Regex lineNumberRegex = new Regex(@"^\d+(?=\. )");
-                Regex selectChoiceRegex = new Regex(@"([『“].*?[』”])\s*(/|$)");
-
-                var skipIndex = 0;
-
-                foreach (var line in CsvReader.ReadFromStream(reader, new CsvOptions() { HeaderMode = HeaderMode.HeaderAbsent }))
+                int cnt = 0;
+				foreach (string scriptName in scriptListFileManager.ScriptFilenameList)
                 {
-                    if (skipIndex < 2)
-                    {
-                        skipIndex++;
-                        continue;
-                    }
-                    string lineNumber = lineNumberRegex.Match(line[0]).Value;
-                    if (string.IsNullOrEmpty(lineNumber))
-                        continue;
-                    i = Convert.ToInt32(lineNumber) - 1;
-                    if (i >= countedTokens.Count)
-                        continue; // should break, but might as well keep going through the file
-
-                    string newText = line[1];
-                    if (!string.IsNullOrEmpty(newText))
-                    {
-                        if (countedTokens[i] is TokenMsgDisp2) 
-                        {
-                            countedTokens[i].GetType().GetProperty("Message").SetValue(countedTokens[i], newText);
-                            countedTokens[i].UpdateData();
-                            ChangedFile = true;
-                        }
-                        else if (countedTokens[i] is TokenSelectDisp2)
-                        {
-                            TokenSelectDisp2 selectToken = countedTokens[i] as TokenSelectDisp2;
-
-                            int choiceIdx = 0;
-                            foreach (Match match in selectChoiceRegex.Matches(newText)) 
-                            {
-                                selectToken.Entries[choiceIdx].Message = match.Groups[1].Value;
-                                choiceIdx++;
-                            }
-
-                            if (choiceIdx > 0)
-                            {
-                                selectToken.UpdateData();
-                                ChangedFile = true;
-                            }
-                        }
-                    }
+                    if (!await FetchCsv(sheetIdDialog.SheetId, scriptName))
+                        break;
+                    cnt++;
                 }
-
-
-                if (TokenListView.SelectedItem != null)
-                    (TokenListView.SelectedItem as Token).UpdateGui(this);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
+                MessageBox.Show($"{cnt} / {scriptListFileManager.ScriptFilenameList.Count} sheets imported successfully.");
             }
         }
 
         private void Menu_Exit(object sender, RoutedEventArgs e)
         {
-            var success = CheckUnsavedChanges();
-            if (!success)
-                return;
-
             this.Close();
         }
 
-        private void ListView1_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void TokenListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.AddedItems.Count == 0)
                 return;
@@ -678,70 +669,54 @@ namespace Riven_Script_Editor
             if (args.AddedItems.Count == 0)
                 return;
 
-            var success = CheckUnsavedChanges();
-            if (!success)
-                return;
-            ChangedFile = false;
 
-            filename = (string)args.AddedItems[0]; 
-            string path_en = System.IO.Path.Combine(folder, filename);
-                
-            byte[] binData = File.ReadAllBytes(path_en);
-    
-
-            if (filename.Equals("DATA.BIN"))
+            if (args.RemovedItems.Count > 0)
             {
-                Tokenizer = new DataTokenizer(new DataWrapper(binData));
-            }
-            else
-            {
-                Tokenizer = new ScriptTokenizer(new DataWrapper(binData), scriptListFileManager);
-            }
-            tokenList = Tokenizer.ParseData();
-
-            string path_jp = System.IO.Path.Combine(textbox_inputFolderJp.Text, filename);
-            if (File.Exists(path_jp))
-            {
-                byte[] binDataJp = File.ReadAllBytes(path_jp);
-                ATokenizer TokenizerJp;
-
-                if (filename.Equals("DATA.BIN"))
-                {
-                    TokenizerJp = new DataTokenizer(new DataWrapper(binDataJp));
-                }
-                else
-                {
-                    TokenizerJp = new ScriptTokenizer(new DataWrapper(binDataJp), scriptListFileManager);
-                }
-                List<Token> tokenListJp = TokenizerJp.ParseData();
-
-                
-                for (int i=0; i < tokenList.Count; i++)
-                {
-                    // quick hack. just assumes indexes are the same. needs to change if we add line-adding functionality. -chroi
-                    Token token = tokenList[i];
-                    if (token is TokenMsgDisp2 tokenMsgDisp2)
-                        tokenMsgDisp2.MessageJp = ((TokenMsgDisp2)tokenListJp[i]).Message;
-                }
+                var success = CheckUnsavedChanges((string)args.RemovedItems[0]);
+                if (!success)
+                    return;
             }
 
-            ScriptSizeCounter.DataContext = new ScriptSizeNotifier(tokenList);
-            ((MainWindow)Application.Current.MainWindow).Title = "12R Script: " + filename;
-            DataContext = new CommandViewBox(tokenList.ToList());
+            filename = (string)args.AddedItems[0];
+
+            ChangeScriptFile(filename);
         }
 
-        private void ListView1_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        private ScriptFile GetScriptFile(string filename, bool load=true)
+        {
+            ScriptFile scriptFile = null;
+            if (!ScriptFiles.TryGetValue(filename, out scriptFile) && load)
+            {
+                string path_en = System.IO.Path.Combine(folder, filename);
+                string path_jp = System.IO.Path.Combine(textbox_inputFolderJp.Text, filename);
+                scriptFile = ScriptFile.Load(path_en, path_jp);
+                ScriptFiles[filename] = scriptFile;
+            }
+            return scriptFile;
+        }
+
+        private void ChangeScriptFile(string filename)
+        {
+            currentFilename = filename;
+            currentScript = GetScriptFile(filename);
+
+            ScriptSizeCounter.DataContext = new ScriptSizeNotifier(currentScript.TokenList);
+            ((MainWindow)Application.Current.MainWindow).Title = "12R Script: " + filename;
+            DataContext = new CommandViewBox(currentScript.TokenList.ToList());
+        }
+
+        private void TokenListView_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
             ContextMenu contextMenu = new ContextMenu();
 
             MenuItem menuItemSplit = new MenuItem();
             menuItemSplit.Header = "Split Script Here";
             string scriptName = (string)listviewFiles.SelectedItem;
-            menuItemSplit.IsEnabled = !scriptName.Contains(splittedFilenameEnding) && (tokenList[TokenListView.SelectedIndex].Splitable != "No");
+            menuItemSplit.IsEnabled = !scriptName.Contains(splittedFilenameEnding) && (TokenList[TokenListView.SelectedIndex].Splitable != "No");
             menuItemSplit.Click += new RoutedEventHandler(ScriptSplitContextMenu_MouseUp);
             contextMenu.Items.Add(menuItemSplit);
 
-            if (tokenList[TokenListView.SelectedIndex].OpCode == 0x0B)
+            if (TokenList[TokenListView.SelectedIndex].OpCode == 0x0B)
             {
                 MenuItem menuItemJoin = new MenuItem();
                 menuItemJoin.Header = "Join Scripts";
@@ -754,20 +729,20 @@ namespace Riven_Script_Editor
 
         private void JoinTokens_MouseUp(Object sender, System.EventArgs e)
         {
-            TokenExtGoto token = (TokenExtGoto)tokenList[TokenListView.SelectedIndex];
+            TokenExtGoto token = (TokenExtGoto)TokenList[TokenListView.SelectedIndex];
             FixExGotoIndexes(scriptListFileManager.getFilenameIndex(token.referencedFilename));
             byte[] binData = File.ReadAllBytes(System.IO.Path.Combine(folder, token.referencedFilename));
             scriptListFileManager.RemoveFilename(token.referencedFilename);
             ScriptTokenizer scriptTokenizer = new ScriptTokenizer(new DataWrapper(binData), scriptListFileManager);
             var breakoutTokenList = scriptTokenizer.ParseData();
             breakoutTokenList.RemoveAt(0); //remove header
-            tokenList.RemoveAt(tokenList.Count - 1); //remove trailer
-            tokenList.RemoveAt(tokenList.Count - 1); //remove end script opcode
-            tokenList.RemoveAt(tokenList.Count - 1); //remove goto opcode
-            tokenList.AddRange(breakoutTokenList);
-            SaveFile((string)listviewFiles.SelectedItem, Tokenizer.AssembleAsData(tokenList));
-            DataContext = new CommandViewBox(tokenList);
-            ScriptSizeCounter.DataContext = new ScriptSizeNotifier(tokenList);
+            TokenList.RemoveAt(TokenList.Count - 1); //remove trailer
+            TokenList.RemoveAt(TokenList.Count - 1); //remove end script opcode
+            TokenList.RemoveAt(TokenList.Count - 1); //remove goto opcode
+            TokenList.AddRange(breakoutTokenList);
+            SaveFile((string)listviewFiles.SelectedItem, Tokenizer.AssembleAsData(TokenList));
+            DataContext = new CommandViewBox(TokenList);
+            ScriptSizeCounter.DataContext = new ScriptSizeNotifier(TokenList);
             File.Delete(folder + "\\" + token.referencedFilename);
         }
 
@@ -776,16 +751,16 @@ namespace Riven_Script_Editor
             string[] scriptNameParts = breakoutScriptName.Split('.');
             breakoutScriptName = scriptNameParts[0] + splittedFilenameEnding + "." + scriptNameParts[1];
             byte scriptIndex = (byte)scriptListFileManager.AddFilename(breakoutScriptName);
-            var breakoutTokenList = tokenList.GetRange(TokenListView.SelectedIndex + 1, tokenList.Count - TokenListView.SelectedIndex - 1);
-            breakoutTokenList.Insert(0, tokenList[0]); //add copied header
+            var breakoutTokenList = TokenList.GetRange(TokenListView.SelectedIndex + 1, TokenList.Count - TokenListView.SelectedIndex - 1);
+            breakoutTokenList.Insert(0, TokenList[0]); //add copied header
             var commandBytes = new byte[] {0x0B, 0x06, scriptIndex, 0x00 , 0x00, 0x00};
             var callExtToken = new TokenExtGoto(null, commandBytes, 0, breakoutScriptName);
-            tokenList.Insert(TokenListView.SelectedIndex + 1, callExtToken);
-            tokenList.RemoveRange(TokenListView.SelectedIndex + 2, tokenList.Count() - TokenListView.SelectedIndex - 4);
-            DataContext = new CommandViewBox(tokenList);
-            ScriptSizeCounter.DataContext = new ScriptSizeNotifier(tokenList);
+            TokenList.Insert(TokenListView.SelectedIndex + 1, callExtToken);
+            TokenList.RemoveRange(TokenListView.SelectedIndex + 2, TokenList.Count() - TokenListView.SelectedIndex - 4);
+            DataContext = new CommandViewBox(TokenList);
+            ScriptSizeCounter.DataContext = new ScriptSizeNotifier(TokenList);
             SaveFile(breakoutScriptName, Tokenizer.AssembleAsData(breakoutTokenList));
-            SaveFile((string)listviewFiles.SelectedItem, Tokenizer.AssembleAsData(tokenList));
+            SaveFile((string)listviewFiles.SelectedItem, Tokenizer.AssembleAsData(TokenList));
         }
 
         private void FixExGotoIndexes(int removedIndex)
