@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Riven_Script_Editor.Tokens
@@ -36,10 +37,7 @@ namespace Riven_Script_Editor.Tokens
 
         public override string GetMessages()
         {
-            string msg = "";
-            foreach (var e in Entries)
-                msg += e.Message + "/";
-
+            string msg = string.Join(" / ", Entries.Select(e => e.Message));
             return msg;
         }
 
@@ -67,6 +65,10 @@ namespace Riven_Script_Editor.Tokens
             return output;
         }
       
+        public override void UpdateData()
+        {
+            Data2 = GetMessages();
+        }
 
         public override void UpdateGui(MainWindow window)
         {
@@ -77,7 +79,7 @@ namespace Riven_Script_Editor.Tokens
 
                 base.UpdateGui(window, false);
                 var e = (SelectDisp2Entry)ev.AddedItems[0];
-                AddTextbox(window, "Choise", "Message", e);
+                AddTextbox(window, "Choice", "Message", e);
             });
         }
     }

@@ -367,6 +367,7 @@ namespace Riven_Script_Editor.Tokens
                 window.ChangedFile = true;
                 obj.GetType().GetProperty(var_name).SetValue(obj, tb.Text, null);
                 UpdateData();
+                window.EntriesList.Items.Refresh();
             };
             x.Children.Add(tb);
         }
@@ -422,6 +423,7 @@ namespace Riven_Script_Editor.Tokens
         protected void PopulateEntryList<T>(MainWindow window, List<T> entries, SelectionChangedEventHandler ev_handler)
         {
             window.EntriesList.ItemsSource = entries;
+            window.EntriesList.DisplayMemberPath = "Message";
             window.EntriesList.SelectionChanged += ev_handler;
             if (entries.Count > 0)
                 window.EntriesList.SelectedIndex = 0;

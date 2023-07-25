@@ -577,8 +577,12 @@ namespace Riven_Script_Editor
             try
             {
                 int i = 0;
-                List<TokenMsgDisp2> tokensMsgDisp2 = tokenList.Where(l => l is TokenMsgDisp2).Cast<TokenMsgDisp2>().ToList();
+                
+                List<Type> countedTokenTypes = new List<Type>() { typeof(TokenMsgDisp2), typeof(TokenSelectDisp2) };
+                List<Token> countedTokens = tokenList.Where(l => countedTokenTypes.Contains(l.GetType()) ).ToList();
+
                 Regex lineNumberRegex = new Regex(@"^\d+(?=\. )");
+                Regex selectChoiceRegex = new Regex(@"([『“].*?[』”])\s*(/|$)");
 
                 var skipIndex = 0;
 
@@ -593,15 +597,35 @@ namespace Riven_Script_Editor
                     if (string.IsNullOrEmpty(lineNumber))
                         continue;
                     i = Convert.ToInt32(lineNumber) - 1;
-                    if (i >= tokensMsgDisp2.Count)
+                    if (i >= countedTokens.Count)
                         continue; // should break, but might as well keep going through the file
 
                     string newText = line[1];
                     if (!string.IsNullOrEmpty(newText))
                     {
-                        tokensMsgDisp2[i].GetType().GetProperty("Message").SetValue(tokensMsgDisp2[i], newText);
-                        tokensMsgDisp2[i].UpdateData();
-                        ChangedFile = true;
+                        if (countedTokens[i] is TokenMsgDisp2) 
+                        {
+                            countedTokens[i].GetType().GetProperty("Message").SetValue(countedTokens[i], newText);
+                            countedTokens[i].UpdateData();
+                            ChangedFile = true;
+                        }
+                        else if (countedTokens[i] is TokenSelectDisp2)
+                        {
+                            TokenSelectDisp2 selectToken = countedTokens[i] as TokenSelectDisp2;
+
+                            int choiceIdx = 0;
+                            foreach (Match match in selectChoiceRegex.Matches(newText)) 
+                            {
+                                selectToken.Entries[choiceIdx].Message = match.Groups[1].Value;
+                                choiceIdx++;
+                            }
+
+                            if (choiceIdx > 0)
+                            {
+                                selectToken.UpdateData();
+                                ChangedFile = true;
+                            }
+                        }
                     }
                 }
 
