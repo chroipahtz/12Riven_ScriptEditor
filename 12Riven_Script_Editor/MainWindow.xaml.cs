@@ -601,7 +601,6 @@ namespace Riven_Script_Editor
                 Regex selectChoiceRegex = new Regex(@"([『“].*?[』”])\s*(/|$)");
 
                 var skipIndex = 0;
-				var numberSubtract = 0;
 
                 foreach (var line in CsvReader.ReadFromStream(reader, new CsvOptions() { HeaderMode = HeaderMode.HeaderAbsent }))
                 {
@@ -610,11 +609,7 @@ namespace Riven_Script_Editor
                         skipIndex++;
                         continue;
                     }
-					if(line[0].EndsWith(" /")) {
-						numberSubtract++;
-						continue;
-					}
-                    string lineNumber = lineNumberRegex.Match(line[0]).Value - numberSubtract;
+                    string lineNumber = lineNumberRegex.Match(line[0]).Value;
                     if (string.IsNullOrEmpty(lineNumber))
                         continue;
                     i = Convert.ToInt32(lineNumber) - 1;
