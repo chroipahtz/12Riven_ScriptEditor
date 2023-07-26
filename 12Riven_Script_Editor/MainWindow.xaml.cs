@@ -478,7 +478,9 @@ namespace Riven_Script_Editor
         {
             try
             {
-                return currentScript.SaveScriptFile(currentFilename);
+                string path_en = System.IO.Path.Combine(folder, currentFilename);
+
+                return currentScript.SaveScriptFile(path_en);
             }
             catch (ScriptFileException ex)
             {
