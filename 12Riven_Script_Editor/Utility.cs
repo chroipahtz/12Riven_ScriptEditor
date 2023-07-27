@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Linq;
+using Csv;
+using System.IO;
+using System.Windows.Forms;
 
 namespace Riven_Script_Editor
 {
@@ -10,6 +13,156 @@ namespace Riven_Script_Editor
     {
         static readonly string encoding = "Shift-JIS";
         //static readonly string encoding = "Big5";
+        static byte[] fontWidthInfo;
+        static Dictionary<char,int> characterWidths = new Dictionary<char, int>();
+        static Dictionary<char,int> characterWidthsWithPadding = new Dictionary<char, int>();
+
+        static Regex lineBreakRegex = new Regex(@"([^%\s](?:[\w,.\-'""!?ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσςΤτΥυΦφΧχΨψΩω]+(?:%\B)*)*)|(%(?:[ABDEKNPpSV]|L[RC]|F[SE]|[OTX][0-9]+|TS[0-9]+|TE|C[0-9A-F]{4})+?)|(\s+)");
+
+        private static bool _fontWidthFileLoaded = false;
+
+        public static void LoadFontWidthFile(string filename)
+        {
+            if (!File.Exists(filename))
+                return;
+
+            fontWidthInfo = File.ReadAllBytes(filename);
+            
+            // old csv format
+            /*using (FileStream fs = new FileStream(filename, FileMode.Open, FileAccess.Read))
+            {
+                
+                var line = CsvReader.ReadFromStream(fs, new CsvOptions() { HeaderMode = HeaderMode.HeaderAbsent }).First();
+                fontGlyphWidths = line.Values.Select(v => string.IsNullOrEmpty(v) ? 0 : Int32.Parse(v)).ToList();
+            }*/
+
+            _fontWidthFileLoaded = true;
+            characterWidths.Clear();
+            characterWidthsWithPadding.Clear();
+        }
+
+        public static bool IsFontWidthFileLoaded() { return _fontWidthFileLoaded; }
+
+        public static int GetFontGlyphIndex(char c)
+        {
+            int halfWidthOffset = 188 * 3; // maybe temporary because base font is half-width for some reason?
+            int fontOffset = -1;
+            if ((c >= '!' && c <= '~') || (c >= 'a' && c <= 'z'))
+                fontOffset = (c - '!') + 188 + halfWidthOffset;
+            else if (c >= 'Α' && c <= 'Ω')
+                fontOffset = (c - 'Α') + 470;
+            else if (c == ' ')
+                fontOffset = 345 + halfWidthOffset;
+            return fontOffset;
+        }
+
+        public static int GetCharacterWidth(char c)
+        {
+            int width;
+            if (!characterWidths.TryGetValue(c, out width))
+            {
+                int i = GetFontGlyphIndex(c);
+
+                if (i != -1)
+                    width = fontWidthInfo[i*4+1] - fontWidthInfo[i*4];
+
+                characterWidths[c] = width;
+            }
+            return width;
+        }
+
+        public static int GetCharacterWidthWithPadding(char c)
+        {
+            int width;
+            if (!characterWidthsWithPadding.TryGetValue(c, out width))
+            {
+                int i = GetFontGlyphIndex(c);
+
+                if (i != -1)
+                    width = GetCharacterWidth(c) + fontWidthInfo[i * 4 + 2];
+
+                characterWidthsWithPadding[c] = width;
+            }
+            return width;
+        }
+
+        public static int GetWordWidth(string s)
+        {
+            //return s.Substring(0, s.Length - 1).Sum(c => GetCharacterWidthWithPadding(c)) + GetCharacterWidth(s[s.Length-1]);
+            return s.Sum(c => GetCharacterWidthWithPadding(c));
+        }
+
+        public static string AddLineBreaks(string s)
+        {
+            if (!IsFontWidthFileLoaded())
+                return s;
+
+            // int maxCharsPerLine = 48; // max chars allowable for the backlog
+            int maxCharsPerLine = 999; // temporarily "disabled" to focus on pixel width
+            int maxPixelsPerLine = 545; // estimate of pixels allowable for the backlog (since it's less wide than the actual textbox)
+
+            List<string> lines = new List<string>();
+            int curLineChars = 0;
+            int curLineWidth = 0;
+            string trailingWhitespace = "";
+            int trailingWhitespaceWidth = 0;
+            string curLine = "";
+
+            foreach (Match match in lineBreakRegex.Matches(s))
+            {
+                bool isWord = match.Groups[1].Success;
+                bool isCommandTag = match.Groups[2].Success;
+                bool isNewline = match.Groups[2].Value == "%N";
+                bool isWhitespace = match.Groups[3].Success;
+                
+                if (isWord)
+                {
+                    int wordWidth = GetWordWidth(match.Value);
+
+                    if (curLineWidth + trailingWhitespaceWidth + wordWidth >= maxPixelsPerLine || 
+                        curLineChars + trailingWhitespace.Length + match.Value.Length >= maxCharsPerLine)
+                    {
+                        lines.Add(curLine);
+                        curLine = "";
+                        curLineChars = 0;
+                        curLineWidth = 0;
+                        trailingWhitespace = "";
+                        trailingWhitespaceWidth = 0;
+                    }
+
+                    curLineWidth += trailingWhitespaceWidth + wordWidth;
+                    curLineChars += trailingWhitespace.Length + match.Value.Length;
+                    curLine += trailingWhitespace + match.Value;
+                    trailingWhitespace = "";
+                    trailingWhitespaceWidth = 0;
+                }
+                else if (isCommandTag && !isNewline)
+                {
+                    curLine += match.Value;
+                }
+                else if (isWhitespace)
+                {
+                    trailingWhitespaceWidth += GetWordWidth(match.Value);
+                    trailingWhitespace += match.Value;
+                }
+
+                if (isNewline)
+                {
+                    lines.Add(curLine);
+                    curLine = "";
+                    curLineChars = 0;
+                    curLineWidth = 0;
+                    trailingWhitespace = "";
+                    trailingWhitespaceWidth = 0;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(curLine))
+                lines.Add(curLine);
+
+            return string.Join("%N", lines);
+        }
+
         public static string StringSingleSpace(string input)
         {
             return input.Replace("  ", " ");

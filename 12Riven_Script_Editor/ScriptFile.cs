@@ -83,7 +83,7 @@ namespace Riven_Script_Editor
             return scriptFile;
         }
 
-        public bool ImportCSV(Stream reader)
+        public bool ImportCSV(Stream reader, bool addLineBreaks = true)
         {
             // bad. horrible. temporary. but it works. -chroi
             int i = 0;
@@ -115,6 +115,9 @@ namespace Riven_Script_Editor
                 {
                     if (countedTokens[i] is TokenMsgDisp2)
                     {
+                        if (addLineBreaks)
+                            newText = Utility.AddLineBreaks(newText);
+
                         countedTokens[i].GetType().GetProperty("Message").SetValue(countedTokens[i], newText);
                         countedTokens[i].UpdateData();
                         ChangedFile = true;

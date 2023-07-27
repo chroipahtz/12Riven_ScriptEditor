@@ -42,6 +42,7 @@
                 <RowDefinition Height="24" />
                 <RowDefinition Height="24" />
                 <RowDefinition Height="24" />
+                <RowDefinition Height="24" />
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Row="0" Grid.Column="0" Text="Folder (ENG)" Grid.ColumnSpan="2" />
@@ -56,9 +57,13 @@
             <TextBox Grid.Row="2" Grid.Column="1" x:Name="textbox_listFile" />
             <Button Grid.Row="2" Grid.Column="2" Content="Browse..." Click="BrowseFilelist"/>
 
-            <TextBlock Grid.Row="3" Grid.Column="0" Text="Output AFS" Grid.ColumnSpan="2" />
-            <TextBox Grid.Row="3" Grid.Column="1" x:Name="textbox_exportedAfs" />
-            <Button Grid.Row="3" Grid.Column="2" Content="Browse..." Click="BrowseExportedAfs"/>
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Font Width File" Grid.ColumnSpan="2" />
+            <TextBox Grid.Row="3" Grid.Column="1" x:Name="textbox_fontWidthFile" />
+            <Button Grid.Row="3" Grid.Column="2" Content="Browse..." Click="BrowseFontWidthFile"/>
+            
+            <TextBlock Grid.Row="4" Grid.Column="0" Text="Output AFS" Grid.ColumnSpan="2" />
+            <TextBox Grid.Row="4" Grid.Column="1" x:Name="textbox_exportedAfs" />
+            <Button Grid.Row="4" Grid.Column="2" Content="Browse..." Click="BrowseExportedAfs"/>
         </Grid>
 
         <Grid DockPanel.Dock="Top" Margin="5" HorizontalAlignment="Center">

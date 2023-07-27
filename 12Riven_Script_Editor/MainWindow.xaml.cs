@@ -61,6 +61,8 @@ namespace Riven_Script_Editor
         {
             InitializeComponent();
 
+            Utility.LoadFontWidthFile(GetConfig("font_width_file"));
+
             scriptListFileManager = new ScriptListFileManager(GetConfig("list_file"));
             ScriptFile.scriptListFileManager = scriptListFileManager;
 
@@ -78,6 +80,7 @@ namespace Riven_Script_Editor
             textbox_inputFolder.Text = GetConfig("input_folder");
             textbox_inputFolderJp.Text = GetConfig("input_folder_jp");
             textbox_listFile.Text = GetConfig("list_file");
+            textbox_fontWidthFile.Text = GetConfig("font_width_file");
             textbox_exportedAfs.Text = GetConfig("exported_afs");
             checkbox_SearchCaseSensitive.IsChecked = GetConfig("case_sensitive") == "1";
             checkbox_SearchAllFiles.IsChecked = GetConfig("search_all_files") == "1";
@@ -92,6 +95,7 @@ namespace Riven_Script_Editor
             textbox_inputFolder.TextChanged += (sender, ev) => { UpdateConfig("input_folder", textbox_inputFolder.Text); BrowseInputFolder(null, null); };
             textbox_inputFolderJp.TextChanged += (sender, ev) => UpdateConfig("input_folder_jp", textbox_inputFolderJp.Text);
             textbox_listFile.TextChanged += (sender, ev) => { UpdateConfig("list_file", textbox_listFile.Text); LoadScriptList(textbox_listFile.Text); };
+            textbox_fontWidthFile.TextChanged += (sender, ev) => { UpdateConfig("font_width_file", textbox_fontWidthFile.Text); };
             textbox_exportedAfs.TextChanged += (sender, ev) => UpdateConfig("exported_afs", textbox_exportedAfs.Text);
             checkbox_SearchCaseSensitive.Checked += (sender, ev) => UpdateConfig("case_sensitive", "1");
             checkbox_SearchCaseSensitive.Unchecked += (sender, ev) => UpdateConfig("case_sensitive", "0");
@@ -214,6 +218,16 @@ namespace Riven_Script_Editor
             }
                 
 
+        }
+
+        private void BrowseFontWidthFile(object sender, RoutedEventArgs e)
+        {
+            CommonOpenFileDialog dialog = new CommonOpenFileDialog();
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            {
+                textbox_fontWidthFile.Text = dialog.FileName;
+                Utility.LoadFontWidthFile(textbox_fontWidthFile.Text);
+            }
         }
 
         private void BrowseExportedAfs(object sender, RoutedEventArgs e) {
@@ -586,7 +600,7 @@ namespace Riven_Script_Editor
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
             {
                 csvPath = dialog.FileName;
-                currentScript.ImportCSV(new FileStream(csvPath, FileMode.Open, FileAccess.Read));
+                currentScript.ImportCSV(new FileStream(csvPath, FileMode.Open, FileAccess.Read), Utility.IsFontWidthFileLoaded());
                 if (TokenListView.SelectedItem != null)
                     (TokenListView.SelectedItem as Token).UpdateGui(this);
             }
