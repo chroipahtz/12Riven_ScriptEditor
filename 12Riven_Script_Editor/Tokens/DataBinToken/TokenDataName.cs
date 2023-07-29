@@ -33,7 +33,7 @@ namespace Riven_Script_Editor.Tokens
             Name = _dataWrapper.ReadString(namePointer.MsgPtrString);
             NameBraces = _dataWrapper.ReadString(nameBracePointer.MsgPtrString);
 
-            Data2 = Name;
+            Data2 = GetMessages();
         }
 
         public override byte[] GetMessagesBytes()
@@ -48,6 +48,10 @@ namespace Riven_Script_Editor.Tokens
         public override string GetMessages()
         {
             return Name;
+        }
+        public override void UpdateData()
+        {
+            Data2 = GetMessages();
         }
 
         public override void UpdateGui(MainWindow window)

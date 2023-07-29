@@ -86,13 +86,107 @@ namespace Riven_Script_Editor
         public bool ImportCSV(Stream reader, bool addLineBreaks = true)
         {
             // bad. horrible. temporary. but it works. -chroi
+            if (this.Name == "DATA.BIN")
+            {
+                return ImportDataCSV(reader);
+            }
+            else
+            {
+                return ImportScriptCSV(reader, addLineBreaks);
+            }
+        }
+
+        private bool ImportDataCSV(Stream reader)
+        {
+            // even more fragile than the script import. oh well.
+            int i = 0;
+
+            Regex commandNameRegex = new Regex(@"([\s\w]+?):");
+
+            Regex routeNameRegex = new Regex(@"\b[\s\w:]+\b(?=\s*\/\/|$)");
+
+            var skipIndex = 0;
+
+            foreach (var line in CsvReader.ReadFromStream(reader, new CsvOptions() { HeaderMode = HeaderMode.HeaderAbsent }))
+            {
+                if (skipIndex < 1)
+                {
+                    skipIndex++;
+                    continue;
+                }
+
+                Match commandMatch = commandNameRegex.Match(line[0]);
+                if (!commandMatch.Success || commandMatch.Groups.Count < 2)
+                    continue;
+
+                string commandName = commandMatch.Groups[1].Value;
+                if (string.IsNullOrEmpty(commandName))
+                    continue;
+
+                while (TokenList[i].Command != commandName && i < TokenList.Count)
+                    i++;
+                if (i > TokenList.Count)
+                    break;
+
+                string newText = line[1];
+                if (!string.IsNullOrEmpty(newText))
+                {
+                    if (TokenList[i] is TokenDataRoute)
+                    {
+                        TokenDataRoute token = TokenList[i] as TokenDataRoute;
+
+                        MatchCollection matches = routeNameRegex.Matches(newText);
+                        if (matches.Count == 2)
+                        {
+                            token.Route1 = matches[0].Value;
+                            token.Route2 = matches[1].Value;
+                            token.UpdateData();
+                            ChangedFile = true;
+                        }
+                    }
+                    else if (TokenList[i] is TokenDataRoute2)
+                    {
+                        TokenDataRoute2 token = TokenList[i] as TokenDataRoute2;
+
+                        MatchCollection matches = routeNameRegex.Matches(newText);
+                        if (matches.Count == 2)
+                        {
+                            token.Route1 = matches[0].Value;
+                            token.Route2 = matches[1].Value;
+                            token.UpdateData();
+                            ChangedFile = true;
+                        }
+                    }
+                    else if (TokenList[i] is TokenDataName)
+                    {
+                        TokenDataName token = TokenList[i] as TokenDataName;
+                        token.Name = newText;
+                        token.UpdateData();
+                        ChangedFile = true;
+                    }
+                    else if (TokenList[i] is TokenDataString)
+                    {
+                        TokenDataString token = TokenList[i] as TokenDataString;
+                        token.DataString = newText;
+                        token.UpdateData();
+                        ChangedFile = true;
+                    }
+                }
+
+                i++;
+            }
+
+            return true;
+        }
+
+        private bool ImportScriptCSV(Stream reader, bool addLineBreaks = true)
+        {
             int i = 0;
 
             List<Type> countedTokenTypes = new List<Type>() { typeof(TokenMsgDisp2), typeof(TokenSelectDisp2) };
             List<Token> countedTokens = TokenList.Where(l => countedTokenTypes.Contains(l.GetType())).ToList();
 
             Regex lineNumberRegex = new Regex(@"^\d+(?=\. )");
-            //Regex selectChoiceRegex = new Regex(@"([『“].*?[』”])\s*(/|$)");
             Regex selectChoiceRegex = new Regex(@"\s*([^/]+?)\s*(?:/|$)");
 
             var skipIndex = 0;

@@ -37,7 +37,7 @@ namespace Riven_Script_Editor
 
             Route1 = _dataWrapper.ReadString(routeOnePointer.MsgPtrString);
             Route2 = _dataWrapper.ReadString(routeTwoPointer.MsgPtrString);
-            Data2 = Route1 + " // " + Route2;
+            UpdateData();
         }
 
         public override byte[] GetMessagesBytes()
@@ -47,6 +47,11 @@ namespace Riven_Script_Editor
             msg.CopyTo(output, 0);
 
             return output;
+        }
+
+        public override void UpdateData()
+        {
+            Data2 = GetMessages();
         }
 
         public override void UpdateGui(MainWindow window)

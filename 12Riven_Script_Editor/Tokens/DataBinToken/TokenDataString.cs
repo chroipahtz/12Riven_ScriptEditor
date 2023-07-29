@@ -14,7 +14,7 @@ namespace Riven_Script_Editor
             set { dataStringPointer.Message = value; }
         }
             
-    public TokenDataString(DataWrapper dataWrapper, int offset) : base(dataWrapper, offset)
+        public TokenDataString(DataWrapper dataWrapper, int offset) : base(dataWrapper, offset)
         {
             _length = 4;
             _command = "String";
@@ -24,7 +24,7 @@ namespace Riven_Script_Editor
             MessagePointerList.Add(dataStringPointer);
 
             DataString = _dataWrapper.ReadString(dataStringPointer.MsgPtrString);
-            Data2 = DataString;
+            Data2 = GetMessages();
         }
 
         public override byte[] GetMessagesBytes()
@@ -34,6 +34,11 @@ namespace Riven_Script_Editor
             msg.CopyTo(output, 0);
 
             return output;
+        }
+
+        public override void UpdateData()
+        {
+            Data2 = GetMessages();
         }
 
         public override void UpdateGui(MainWindow window)

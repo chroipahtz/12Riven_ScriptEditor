@@ -664,7 +664,8 @@ namespace Riven_Script_Editor
             if (sheetIdDialog.ShowDialog() == true)
             {
                 UpdateConfig("spreadsheet_id", sheetIdDialog.SheetId);
-				await FetchCsv(sheetIdDialog.SheetId, filename);
+                await FetchCsv(sheetIdDialog.SheetId, filename);
+                ChangeScriptFile(filename);
             }
         }
 
