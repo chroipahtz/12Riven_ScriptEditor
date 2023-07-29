@@ -488,6 +488,24 @@ namespace Riven_Script_Editor
             SaveCurrentScriptFile();
         }
 
+        private void Menu_File_SaveAll(object sender, RoutedEventArgs e)
+        {
+            IEnumerable<ScriptFile> changedFiles = ScriptFiles.Values.Where(f => f.ChangedFile);
+
+            if (MessageBox.Show($"Save all {changedFiles.Count()} changed scripts?", "Unsaved changes", MessageBoxButton.OKCancel) == MessageBoxResult.Cancel)
+                return;
+
+            foreach (ScriptFile scriptFile in ScriptFiles.Values)
+            {
+                if (scriptFile.ChangedFile)
+                {
+                    string path_en = System.IO.Path.Combine(folder, scriptFile.Name);
+
+                    scriptFile.SaveScriptFile(path_en);
+                }
+            }
+        }
+
         private bool SaveCurrentScriptFile()
         {
             try
@@ -522,15 +540,17 @@ namespace Riven_Script_Editor
             }
         }
 
+        private void RevertScriptFile(string filename)
+        {
+            string path_jp = System.IO.Path.Combine(textbox_inputFolderJp.Text, filename);
+            ScriptFile scriptFile = ScriptFile.Load(path_jp, path_jp);
+            scriptFile.ChangedFile = true;
+            ScriptFiles[filename] = scriptFile;
+        }
+
         private void Menu_Export_Afs(object sender, RoutedEventArgs e)
         {
             if (textbox_exportedAfs.Text == "") 
-            {
-                MessageBox.Show("Please select an AFS path.", "No AFS path selected");
-                return;
-            }
-
-            if (textbox_exportedAfs.Text == "")
             {
                 MessageBox.Show("Please select an AFS path.", "No AFS path selected");
                 return;
@@ -664,6 +684,61 @@ namespace Riven_Script_Editor
                 }
                 MessageBox.Show($"{cnt} / {scriptListFileManager.ScriptFilenameList.Count} sheets imported successfully.");
             }
+        }
+        private void Menu_Revert_Script(object sender, RoutedEventArgs e)
+        {
+            if (listviewFiles.SelectedItem == null)
+            {
+                MessageBox.Show("Please select a script file.", "No script file selected");
+                return;
+            }
+
+            if (textbox_inputFolderJp.Text == "")
+            {
+                MessageBox.Show("Please select a JP script path.", "No JP script path selected");
+                return;
+            }
+
+            try
+            {
+                RevertScriptFile(filename);
+                ChangeScriptFile(filename);
+            }
+            catch (FileNotFoundException)
+            {
+                MessageBox.Show($"{filename} not found in JP script folder.", "No JP script file found");
+                return;
+            }
+        }
+
+        private void Menu_Revert_All(object sender, RoutedEventArgs e)
+        {
+            if (textbox_inputFolderJp.Text == "")
+            {
+                MessageBox.Show("Please select a JP script path.", "No JP script path selected");
+                return;
+            }
+
+            List<string> failedReverts = new List<string>();
+
+            foreach (string scriptName in scriptListFileManager.ScriptFilenameList)
+            {
+                try
+                {
+                    RevertScriptFile(scriptName);
+                }
+                catch (FileNotFoundException)
+                {
+                    failedReverts.Add(scriptName);
+                }
+            }
+
+            if (failedReverts.Count > 0)
+                MessageBox.Show($"The following {failedReverts.Count} scripts were not found in the JP script folder:\n\n" +
+                    $"{string.Join(", ", failedReverts)}", "No JP script files found");
+
+            if (listviewFiles.SelectedItem != null)
+                ChangeScriptFile(filename);
         }
 
         private void Menu_Exit(object sender, RoutedEventArgs e)
