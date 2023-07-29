@@ -92,7 +92,8 @@ namespace Riven_Script_Editor
             List<Token> countedTokens = TokenList.Where(l => countedTokenTypes.Contains(l.GetType())).ToList();
 
             Regex lineNumberRegex = new Regex(@"^\d+(?=\. )");
-            Regex selectChoiceRegex = new Regex(@"([『“].*?[』”])\s*(/|$)");
+            //Regex selectChoiceRegex = new Regex(@"([『“].*?[』”])\s*(/|$)");
+            Regex selectChoiceRegex = new Regex(@"\s*([^/]+?)\s*(?:/|$)");
 
             var skipIndex = 0;
 
@@ -115,8 +116,10 @@ namespace Riven_Script_Editor
                 {
                     if (countedTokens[i] is TokenMsgDisp2)
                     {
+                        TokenMsgDisp2 msgToken = countedTokens[i] as TokenMsgDisp2;
+
                         if (addLineBreaks)
-                            newText = Utility.AddLineBreaks(newText);
+                            newText = Utility.AddLineBreaks(newText, !string.IsNullOrEmpty(msgToken.Speaker));
 
                         countedTokens[i].GetType().GetProperty("Message").SetValue(countedTokens[i], newText);
                         countedTokens[i].UpdateData();
@@ -129,6 +132,7 @@ namespace Riven_Script_Editor
                         int choiceIdx = 0;
                         foreach (Match match in selectChoiceRegex.Matches(newText))
                         {
+                            if (choiceIdx >= selectToken.Entries.Count) break;
                             selectToken.Entries[choiceIdx].Message = match.Groups[1].Value;
                             choiceIdx++;
                         }

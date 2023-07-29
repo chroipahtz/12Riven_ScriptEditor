@@ -88,11 +88,15 @@ namespace Riven_Script_Editor
 
         public static int GetWordWidth(string s)
         {
-            //return s.Substring(0, s.Length - 1).Sum(c => GetCharacterWidthWithPadding(c)) + GetCharacterWidth(s[s.Length-1]);
             return s.Sum(c => GetCharacterWidthWithPadding(c));
         }
 
-        public static string AddLineBreaks(string s)
+        public static int GetWordWidthEOL(string s)
+        {
+            return s.Substring(0, s.Length - 1).Sum(c => GetCharacterWidthWithPadding(c)) + GetCharacterWidth(s[s.Length-1]);
+        }
+
+        public static string AddLineBreaks(string s, bool isDialogue = false)
         {
             if (!IsFontWidthFileLoaded())
                 return s;
@@ -107,6 +111,7 @@ namespace Riven_Script_Editor
             string trailingWhitespace = "";
             int trailingWhitespaceWidth = 0;
             string curLine = "";
+            if (isDialogue) s = "“" + s;
 
             foreach (Match match in lineBreakRegex.Matches(s))
             {
@@ -117,9 +122,9 @@ namespace Riven_Script_Editor
                 
                 if (isWord)
                 {
-                    int wordWidth = GetWordWidth(match.Value);
+                    int wordWidthEOL = GetWordWidthEOL(match.Value);
 
-                    if (curLineWidth + trailingWhitespaceWidth + wordWidth >= maxPixelsPerLine || 
+                    if (curLineWidth + trailingWhitespaceWidth + wordWidthEOL >= maxPixelsPerLine || 
                         curLineChars + trailingWhitespace.Length + match.Value.Length >= maxCharsPerLine)
                     {
                         lines.Add(curLine);
@@ -129,6 +134,8 @@ namespace Riven_Script_Editor
                         trailingWhitespace = "";
                         trailingWhitespaceWidth = 0;
                     }
+
+                    int wordWidth = GetWordWidth(match.Value);
 
                     curLineWidth += trailingWhitespaceWidth + wordWidth;
                     curLineChars += trailingWhitespace.Length + match.Value.Length;
@@ -159,6 +166,9 @@ namespace Riven_Script_Editor
 
             if (!string.IsNullOrEmpty(curLine))
                 lines.Add(curLine);
+
+            if (isDialogue && lines.Count > 0)
+                lines[0] = lines[0].Substring(1); // remove first quote if dialogue line
 
             return string.Join("%N", lines);
         }

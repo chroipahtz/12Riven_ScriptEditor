@@ -26,6 +26,9 @@ namespace Riven_Script_Editor.Tokens
                 MessagePointerList.Add(new MessagePointer(i + 1, i, _byteCommand));
                 entry.choisePointer = MessagePointerList[MessagePointerList.Count - 1];
                 entry.Message = _dataWrapper.ReadString(MessagePointerList[MessagePointerList.Count - 1].MsgPtrString);
+
+                entry.Message = entry.Message.Replace("「", "“").Replace("」", "”");
+
                 // Remove double spaces
                 //entry.TempMsg = Utility.StringSingleSpace(entry.Message);
                 Entries.Add(entry);
