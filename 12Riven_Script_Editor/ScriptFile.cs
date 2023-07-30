@@ -212,6 +212,8 @@ namespace Riven_Script_Editor
                     {
                         TokenMsgDisp2 msgToken = countedTokens[i] as TokenMsgDisp2;
 
+                        newText = ReplaceItalics(newText);
+
                         if (addLineBreaks)
                             newText = Utility.AddLineBreaks(newText, !string.IsNullOrEmpty(msgToken.Speaker));
 
@@ -241,6 +243,56 @@ namespace Riven_Script_Editor
             }
 
             return true;
+        }
+
+        private string ReplaceItalics(string text)
+        {
+            Regex italicRegex = new Regex(@"([^%*](?:[\s\w,.\-'""!?ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσςΤτΥυΦφΧχΨψΩω]+(?:%\B)*)*)|(\*)|(%(?:[ABDEKNPpSV]|L[RC]|F[SE]|[OTX][0-9]+|TS[0-9]+|TE|C[0-9A-F]{4})+?)");
+
+            bool isItalic = false;
+
+            string newText = "";
+
+            foreach (Match match in italicRegex.Matches(text))
+            {
+                bool isText = match.Groups[1].Success;
+                isItalic ^= match.Groups[2].Success;
+                bool isCommandTag = match.Groups[3].Success;
+
+                if (isText && isItalic)
+                {
+                    List<byte> bytes = new List<byte>();
+
+                    foreach (char c in match.Value)
+                    {
+                        if (c >= 'A' && c <= 'Z')
+                        {
+                            bytes.Add(0x84);
+                            bytes.Add((byte)(0x40 + (c - 'A')));
+                        }
+                        else if (c >= 'a' && c <= 'o')
+                        {
+                            bytes.Add(0x84);
+                            bytes.Add((byte)(0x70 + (c - 'a')));
+                        }
+                        else if (c >= 'p' && c <= 'z')
+                        {
+                            bytes.Add(0x84);
+                            bytes.Add((byte)(0x80 + (c - 'p')));
+                        }
+                        else
+                            bytes.Add((byte)c);
+                    }
+
+                    newText += Utility.StringDecode(bytes.ToArray());
+                }
+                else if (isText || isCommandTag)
+                {
+                    newText += match.Value;
+                }
+            }
+
+            return newText;
         }
 
         public bool SaveScriptFile(string filename)

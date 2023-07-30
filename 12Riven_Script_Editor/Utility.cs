@@ -17,7 +17,7 @@ namespace Riven_Script_Editor
         static Dictionary<char,int> characterWidths = new Dictionary<char, int>();
         static Dictionary<char,int> characterWidthsWithPadding = new Dictionary<char, int>();
 
-        static Regex lineBreakRegex = new Regex(@"([^%\s](?:[\w,.\-'""!?ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσςΤτΥυΦφΧχΨψΩω]+(?:%\B)*)*)|(%(?:[ABDEKNPpSV]|L[RC]|F[SE]|[OTX][0-9]+|TS[0-9]+|TE|C[0-9A-F]{4})+?)|(\s+)");
+        static Regex lineBreakRegex = new Regex(@"([^%\s](?:[\p{L},.\-'""!?ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσςΤτΥυΦφΧχΨψΩω]+(?:%\B)*)*)|(%(?:[ABDEKNPpSV]|L[RC]|F[SE]|[OTX][0-9]+|TS[0-9]+|TE|C[0-9A-F]{4})+?)|(\s+)");
 
         private static bool _fontWidthFileLoaded = false;
 
@@ -51,6 +51,12 @@ namespace Riven_Script_Editor
                 fontOffset = (c - '!') + 188 + halfWidthOffset;
             else if (c >= 'Α' && c <= 'Ω')
                 fontOffset = (c - 'Α') + 470;
+            else if (c >= 'А' && c <= 'Я')
+                fontOffset = (c - 'А') + 564;
+            else if (c >= 'а' && c <= 'н')
+                fontOffset = (c - 'а') + 612;
+            else if (c >= 'о' && c <= 'я')
+                fontOffset = (c - 'о') + 627;
             else if (c == ' ')
                 fontOffset = 345 + halfWidthOffset;
             return fontOffset;
