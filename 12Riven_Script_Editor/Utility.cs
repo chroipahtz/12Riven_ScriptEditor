@@ -11,8 +11,8 @@ namespace Riven_Script_Editor
 {
     static class Utility
     {
-        static readonly string encoding = "Shift-JIS";
-        //static readonly string encoding = "Big5";
+        //static readonly string encoding = "Shift-JIS";
+        static readonly string encoding = "Big5";
         static byte[] fontWidthInfo;
         static Dictionary<char,int> characterWidths = new Dictionary<char, int>();
         static Dictionary<char,int> characterWidthsWithPadding = new Dictionary<char, int>();
