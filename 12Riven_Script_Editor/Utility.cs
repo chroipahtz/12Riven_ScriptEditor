@@ -17,7 +17,7 @@ namespace Riven_Script_Editor
         static Dictionary<char,int> characterWidths = new Dictionary<char, int>();
         static Dictionary<char,int> characterWidthsWithPadding = new Dictionary<char, int>();
 
-        static Regex lineBreakRegex = new Regex(@"([^%\s](?:[\p{L},.\-'""!?ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσςΤτΥυΦφΧχΨψΩω]+(?:%\B)*)*)|(%(?:[ABDEKNPpSV]|L[RC]|F[SE]|[OTX][0-9]+|TS[0-9]+|TE|C[0-9A-F]{4})+?)|(\s+)");
+        static Regex lineBreakRegex = new Regex(@"([^%\s](?:[\p{L}0-9,.\-'""!?ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσςΤτΥυΦφΧχΨψΩω]|(?:%[^N])+(?:%\B)*)*)|(%(?:[ABDEKNPpSV]|L[RC]|F[SE]|[OTX][0-9]+|TS[0-9]+|TE|C[0-9A-F]{4})+?)|(\s+)");
 
         private static bool _fontWidthFileLoaded = false;
 
