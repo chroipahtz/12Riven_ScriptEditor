@@ -11,8 +11,8 @@ namespace Riven_Script_Editor
 {
     static class Utility
     {
-        //static readonly string encoding = "Shift-JIS";
-        static readonly string encoding = "Big5";
+        static readonly string encoding_jp = "Shift-JIS";
+        static readonly string encoding_cn = "Big5";
         static byte[] fontWidthInfo;
         static Dictionary<char,int> characterWidths = new Dictionary<char, int>();
         static Dictionary<char,int> characterWidthsWithPadding = new Dictionary<char, int>();
@@ -45,10 +45,11 @@ namespace Riven_Script_Editor
 
         public static int GetFontGlyphIndex(char c)
         {
-            int halfWidthOffset = 188 * 3; // maybe temporary because base font is half-width for some reason?
+            int glyphsPerLine = 190;
+            int halfWidthOffset = glyphsPerLine * 3; // maybe temporary because base font is half-width for some reason?
             int fontOffset = -1;
             if ((c >= '!' && c <= '~') || (c >= 'a' && c <= 'z'))
-                fontOffset = (c - '!') + 188 + halfWidthOffset;
+                fontOffset = (c - '!') + glyphsPerLine + halfWidthOffset;
             else if (c >= 'Α' && c <= 'Ω')
                 fontOffset = (c - 'Α') + 470;
             else if (c >= 'А' && c <= 'Я')
@@ -104,6 +105,8 @@ namespace Riven_Script_Editor
 
         public static string AddLineBreaks(string s, bool isDialogue = false)
         {
+            return s; // temp
+
             if (!IsFontWidthFileLoaded())
                 return s;
 
@@ -189,11 +192,27 @@ namespace Riven_Script_Editor
             return input.Replace(" ", "  ");
         }
 
-        public static byte[] StringEncode(string input)
+        public static byte[] StringEncode(string input, string encoding = "Big5")
         {
             string temp = input.Replace("ï", "∇");
             temp = temp.Replace("é", "≡");
             temp = temp.Replace("ö", "≒");
+
+            if (encoding == "Big5")
+            {
+                // Big5 punctuation
+                temp = temp.Replace('\'', '＇');
+                temp = temp.Replace('\"', '＂');
+                temp = temp.Replace('-', '－');
+                temp = temp.Replace(',', '，');
+                temp = temp.Replace('.', '．');
+                temp = temp.Replace(';', '；');
+                temp = temp.Replace(':', '：');
+                temp = temp.Replace('?', '？');
+                temp = temp.Replace('!', '！');
+                temp = temp.Replace('(', '（');
+                temp = temp.Replace(')', '）');
+            }
             var x = Encoding.GetEncoding(encoding).GetBytes(temp);
 
             for (int i = 0; i < x.Length - 1; i++)
