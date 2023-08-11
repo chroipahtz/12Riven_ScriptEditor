@@ -576,9 +576,17 @@ namespace Riven_Script_Editor
 
             try
             {
+                // bad hack to resave all scripts in Big5 and pack those instead
+                foreach (string scriptName in scriptListFileManager.ScriptFilenameList)
+                {
+                    string path_cn = System.IO.Path.Combine(folder, "export", scriptName);
+
+                    GetScriptFile(scriptName).SaveScriptFile(path_cn, "Big5");
+                }
+
                 using (FileStream stream = new FileStream(textbox_exportedAfs.Text, FileMode.Create, FileAccess.Write))
                 {
-                    byte[] data = AFS.Pack(textbox_listFile.Text, textbox_inputFolder.Text);
+                    byte[] data = AFS.Pack(textbox_listFile.Text, folder, System.IO.Path.Combine(folder, "export"));
                     stream.Write(data, 0, (int)data.Length);
                 }
                 MessageBox.Show("Exported " + textbox_exportedAfs.Text);

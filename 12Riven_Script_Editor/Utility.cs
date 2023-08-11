@@ -11,8 +11,7 @@ namespace Riven_Script_Editor
 {
     static class Utility
     {
-        static readonly string encoding_jp = "Shift-JIS";
-        static readonly string encoding_cn = "Big5";
+        public static string CurrentEncoding = "Shift-JIS";
         static byte[] fontWidthInfo;
         static Dictionary<char,int> characterWidths = new Dictionary<char, int>();
         static Dictionary<char,int> characterWidthsWithPadding = new Dictionary<char, int>();
@@ -192,13 +191,13 @@ namespace Riven_Script_Editor
             return input.Replace(" ", "  ");
         }
 
-        public static byte[] StringEncode(string input, string encoding = "Big5")
+        public static byte[] StringEncode(string input)
         {
             string temp = input.Replace("ï", "∇");
             temp = temp.Replace("é", "≡");
             temp = temp.Replace("ö", "≒");
 
-            if (encoding == "Big5")
+            if (CurrentEncoding == "Big5")
             {
                 // Big5 punctuation
                 temp = temp.Replace('\'', '＇');
@@ -213,7 +212,7 @@ namespace Riven_Script_Editor
                 temp = temp.Replace('(', '（');
                 temp = temp.Replace(')', '）');
             }
-            var x = Encoding.GetEncoding(encoding).GetBytes(temp);
+            var x = Encoding.GetEncoding(CurrentEncoding).GetBytes(temp);
 
             for (int i = 0; i < x.Length - 1; i++)
                 if (x[i] >= 0x80)
@@ -273,7 +272,7 @@ namespace Riven_Script_Editor
                     //    { x[i-1] = 0x81; x[i] = 0x7A; }
                 }
 
-            var output = Encoding.GetEncoding(encoding).GetString(x);
+            var output = Encoding.GetEncoding(CurrentEncoding).GetString(x);
             output = output.Replace("∇", "ï");
             output = output.Replace("≡", "é");
             output = output.Replace("≒", "ö");

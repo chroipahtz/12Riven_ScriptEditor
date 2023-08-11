@@ -295,20 +295,42 @@ namespace Riven_Script_Editor
             return newText;
         }
 
-        public bool SaveScriptFile(string filename)
+        public bool SaveScriptFile(string filename, string encoding = null)
         {
             if (filename == "") return false;
 
-            byte[] output = Tokenizer.AssembleAsData(TokenList);
+            string previousEncoding = null;
+            bool saved = false;
 
-            if (output.Length > 0xFFFF)
+            if (encoding == null) encoding = "Shift-JIS";
+            if (encoding != Utility.CurrentEncoding)
             {
-                throw new ScriptFileException("Script length exceeded. Please split the script before saving it.");
+                previousEncoding = Utility.CurrentEncoding;
+                Utility.CurrentEncoding = encoding;
             }
 
-            bool saved = SaveFile(filename, output);
-            if (saved)
-                ChangedFile = false;
+            try
+            {
+                byte[] output = Tokenizer.AssembleAsData(TokenList);
+
+                if (output.Length > 0xFFFF)
+                {
+                    throw new ScriptFileException("Script length exceeded. Please split the script before saving it.");
+                }
+
+                saved = SaveFile(filename, output);
+                if (saved)
+                    ChangedFile = false;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            finally
+            {
+                if (previousEncoding != null) Utility.CurrentEncoding = previousEncoding;
+            }
+
             return saved;
         }
 
@@ -323,6 +345,8 @@ namespace Riven_Script_Editor
 
         private bool SaveFile(string fileName, byte[] data)
         {
+            new FileInfo(fileName).Directory.Create();
+
             var stream_out = new FileStream(fileName, FileMode.Create, FileAccess.ReadWrite);
             stream_out.Write(data, 0, data.Length);
             stream_out.Close();

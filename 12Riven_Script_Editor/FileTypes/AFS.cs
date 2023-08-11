@@ -10,7 +10,7 @@ namespace Riven_Script_Editor.FileTypes
     class AFS
     {
         static FileStream fstream;
-        static public byte[] Pack(string list_file, string folder)
+        static public byte[] Pack(string list_file, string folder, string exportFolder)
         {
             /*
              * AFS file chunks are aligned on 2048byte (0x800) boundaries.
@@ -52,7 +52,10 @@ namespace Riven_Script_Editor.FileTypes
             var chunk_sizes = new List<int>();
 
             foreach (var fname in fnames)
-                chunks.Add(File.ReadAllBytes(Path.Combine(folder, fname)));
+                if (File.Exists(Path.Combine(exportFolder, fname)))
+                    chunks.Add(File.ReadAllBytes(Path.Combine(exportFolder, fname)));
+                else
+                    chunks.Add(File.ReadAllBytes(Path.Combine(folder, fname)));
 
             // Determine size to allocate for header
             int header_length = 8 + chunks.Count * 8 + 4;
