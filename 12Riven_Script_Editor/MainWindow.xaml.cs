@@ -581,7 +581,7 @@ namespace Riven_Script_Editor
                 {
                     string path_cn = System.IO.Path.Combine(folder, "export", scriptName);
 
-                    GetScriptFile(scriptName).SaveScriptFile(path_cn, "Big5");
+                    GetScriptFile(scriptName).SaveScriptFile(path_cn, "Big5", true);
                 }
 
                 using (FileStream stream = new FileStream(textbox_exportedAfs.Text, FileMode.Create, FileAccess.Write))

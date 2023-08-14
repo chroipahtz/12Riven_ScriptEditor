@@ -44,26 +44,31 @@ namespace Riven_Script_Editor
 
         public static int GetFontGlyphIndex(char c)
         {
-            int glyphsPerLine = 190;
-            int halfWidthOffset = glyphsPerLine * 3; // maybe temporary because base font is half-width for some reason?
+            //int glyphsPerLine = 190;
+            //int halfWidthOffset = glyphsPerLine * 3; // maybe temporary because base font is half-width for some reason?
             int fontOffset = -1;
-            if ((c >= '!' && c <= '~') || (c >= 'a' && c <= 'z'))
-                fontOffset = (c - '!') + glyphsPerLine + halfWidthOffset;
-            else if (c >= 'Α' && c <= 'Ω')
-                fontOffset = (c - 'Α') + 470;
+            //if ((c >= '!' && c <= '~') || (c >= 'a' && c <= 'z'))
+            //    fontOffset = (c - '!') + glyphsPerLine;
+            if (c >= '0' && c <= '9')
+                fontOffset = (c - '0') + 0x12d;
+            else if (c >= 'A' && c <= 'Z')
+                fontOffset = (c - 'A') + 0x14e;
+            else if (c >= 'a' && c <= 'z')
+                fontOffset = (c - 'a') + 0x168;
             else if (c >= 'А' && c <= 'Я')
-                fontOffset = (c - 'А') + 564;
-            else if (c >= 'а' && c <= 'н')
-                fontOffset = (c - 'а') + 612;
-            else if (c >= 'о' && c <= 'я')
-                fontOffset = (c - 'о') + 627;
-            else if (c == ' ')
-                fontOffset = 345 + halfWidthOffset;
+                fontOffset = (c - 'А') + 11135;
+            else if (c >= 'а' && c <= 'я')
+                fontOffset = (c - 'а') + 11168;
+            else // if (c == ' ') // temp default to space until get map of punctuation
+                fontOffset = 0x0;
             return fontOffset;
         }
 
         public static int GetCharacterWidth(char c)
         {
+            if (c == '*') // override for italic marker
+                return 0;
+
             int width;
             if (!characterWidths.TryGetValue(c, out width))
             {
@@ -104,7 +109,7 @@ namespace Riven_Script_Editor
 
         public static string AddLineBreaks(string s, bool isDialogue = false)
         {
-            return s; // temp
+            //return s; // temp
 
             if (!IsFontWidthFileLoaded())
                 return s;
@@ -197,9 +202,10 @@ namespace Riven_Script_Editor
             temp = temp.Replace("é", "≡");
             temp = temp.Replace("ö", "≒");
 
+            /* removed due to changing the mapping in-game
+            // Big5 punctuation
             if (CurrentEncoding == "Big5")
             {
-                // Big5 punctuation
                 temp = temp.Replace('\'', '＇');
                 temp = temp.Replace('\"', '＂');
                 temp = temp.Replace('-', '－');
@@ -211,7 +217,7 @@ namespace Riven_Script_Editor
                 temp = temp.Replace('!', '！');
                 temp = temp.Replace('(', '（');
                 temp = temp.Replace(')', '）');
-            }
+            }*/
             var x = Encoding.GetEncoding(CurrentEncoding).GetBytes(temp);
 
             for (int i = 0; i < x.Length - 1; i++)

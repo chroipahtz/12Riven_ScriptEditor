@@ -212,7 +212,8 @@ namespace Riven_Script_Editor
                     {
                         TokenMsgDisp2 msgToken = countedTokens[i] as TokenMsgDisp2;
 
-                        newText = ReplaceItalics(newText);
+                        // don't replace italics until export
+                        //newText = ReplaceItalics(newText);
 
                         if (addLineBreaks)
                             newText = Utility.AddLineBreaks(newText, !string.IsNullOrEmpty(msgToken.Speaker));
@@ -265,20 +266,25 @@ namespace Riven_Script_Editor
 
                     foreach (char c in match.Value)
                     {
-                        if (c >= 'A' && c <= 'Z')
+                        if (c >= 'A' && c <= 'L')
                         {
-                            bytes.Add(0x84);
-                            bytes.Add((byte)(0x40 + (c - 'A')));
+                            bytes.Add(0xc7);
+                            bytes.Add((byte)(0xf3 + (c - 'A')));
                         }
-                        else if (c >= 'a' && c <= 'o')
+                        else if (c >= 'M' && c <= 'Z')
                         {
-                            bytes.Add(0x84);
-                            bytes.Add((byte)(0x70 + (c - 'a')));
+                            bytes.Add(0xc8);
+                            bytes.Add((byte)(0x40 + (c - 'M')));
                         }
-                        else if (c >= 'p' && c <= 'z')
+                        else if (c >= 'a' && c <= 'f')
                         {
-                            bytes.Add(0x84);
-                            bytes.Add((byte)(0x80 + (c - 'p')));
+                            bytes.Add(0xc8);
+                            bytes.Add((byte)(0x55 + (c - 'a')));
+                        }
+                        else if (c >= 'g' && c <= 'z')
+                        {
+                            bytes.Add(0xc8);
+                            bytes.Add((byte)(0x5c + (c - 'g')));
                         }
                         else
                             bytes.Add((byte)c);
@@ -295,7 +301,7 @@ namespace Riven_Script_Editor
             return newText;
         }
 
-        public bool SaveScriptFile(string filename, string encoding = null)
+        public bool SaveScriptFile(string filename, string encoding = null, bool processText = false)
         {
             if (filename == "") return false;
 
@@ -311,6 +317,15 @@ namespace Riven_Script_Editor
 
             try
             {
+                if (processText) // replace italics, other actions if necessary
+                {
+                    foreach (TokenMsgDisp2 token in TokenList.Where(t => t is TokenMsgDisp2))
+                    {
+                        token.Message = ReplaceItalics(token.Message);
+                        token.UpdateData();
+                    }
+                }
+
                 byte[] output = Tokenizer.AssembleAsData(TokenList);
 
                 if (output.Length > 0xFFFF)
